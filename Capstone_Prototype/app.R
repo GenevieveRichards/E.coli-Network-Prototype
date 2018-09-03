@@ -20,76 +20,85 @@ ui <- fluidPage(
   # Application title
   h1("QCloud TRNDiff Regulon Browser", align = "center"),
   hr(),
-  conditionalPanel(condition = "input.home == 0 || input.back == 1",
-                   tags$div(
-                     align = "center",
-                     img(
-                       src = 'Nav1.png',
-                       align = "center",
-                       width = "60%",
-                       height = 130
-                     )
-                   ),
-                   hr(),
-                   sidebarLayout(
-                     sidebarPanel(
-                       p("This network is a visualisation of all the Transcription Factors in your chosen Genome.  "),
-                       hr(),
-                       h4("Genome Name:"),
-                       h4("Genome Id: "),
-                       checkboxInput(
-                         "viewNonRegulation",
-                         "Remove Unconnected Transcription Factors",
-                         value = TRUE
-                       ),
-                       checkboxInput("removeLoops", "Remove Self-Regulation",
-                                     value = TRUE),
-                       h5("Select the Transcription Factors or Regulatory pathways you are interested in:  "),
-                       verbatimTextOutput("shiny_return"),
-                       br(),
-                       actionButton("gosel", "Unselect nodes!"),
-                       br(),
-                       actionButton("home", "Submit")
-                     ),
-                     
-                     # Show a plot? of the generated distribution
-                     mainPanel(visNetworkOutput(
-                       "network1", width = "100%", height = 800
-                     ))
-                   )),
-  conditionalPanel(condition = "input.home == 1",
-                   tags$div(
-                     align = "center",
-                     img(
-                       src = 'Nav2.png',
-                       align = "center",
-                       width = "60%",
-                       height = 150
-                     )
-                   ),
-                   hr(),
-                   br(),
-                   sidebarLayout(
-                     sidebarPanel(h5("Selected Full Network Overview"), 
-                                  actionButton("back", "Back")),
-                     mainPanel(visNetworkOutput(
-                       "network2", width = "100%", height = 800
-                     ))
-                   ))
+  conditionalPanel(
+    condition = "input.home == 0 || input.back == 1",
+    tags$div(
+      align = "center",
+      img(
+        src = 'Nav1.png',
+        align = "center",
+        width = "60%",
+        height = 130
+      )
+    ),
+    hr(),
+    sidebarLayout(
+      sidebarPanel(
+        p(
+          "This network is a visualisation of all the Transcription Factors in your chosen Genome.  "
+        ),
+        hr(),
+        h4("Genome Name:"),
+        h4("Genome Id: "),
+        checkboxInput(
+          "viewNonRegulation",
+          "Remove Unconnected Transcription Factors",
+          value = TRUE
+        ),
+        checkboxInput("removeLoops", "Remove Self-Regulation",
+                      value = TRUE),
+        h5(
+          "Select the Transcription Factors or Regulatory pathways you are interested in:  "
+        ),
+        verbatimTextOutput("shiny_return"),
+        br(),
+        actionButton("gosel", "Unselect nodes!"),
+        br(),
+        actionButton("home", "Submit")
+      ),
+      
+      # Show a plot? of the generated distribution
+      mainPanel(visNetworkOutput(
+        "network1", width = "100%", height = 800
+      ))
+    )
+  ),
+  conditionalPanel(
+    condition = "input.home == 1",
+    tags$div(
+      align = "center",
+      img(
+        src = 'Nav2.png',
+        align = "center",
+        width = "60%",
+        height = 150
+      )
+    ),
+    hr(),
+    br(),
+    sidebarLayout(
+      sidebarPanel(
+        h5("Selected Full Network Overview"),
+        actionButton("back", "Back")
+      ),
+      mainPanel(visNetworkOutput(
+        "network2", width = "100%", height = 800
+      ))
+    )
+  )
 )
-
+printouts <- ""
+i <- 1
+selected <- vector("list", 20)
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   dataframes <- read.csv("data.csv", header = T, as.is = T)
-  print(dataframes)
   dataframes$Gene <- tolower(dataframes$Gene)
   dataframes$TFactor <- tolower(dataframes$TFactor)
   edges <-
     data.frame(from = dataframes$TFactor, to = dataframes$Gene)
   graph <- graph.data.frame(edges, directed = T)
   degree_value <- degree(graph, mode = "out")
-  print(degree_value)
-  
   nodes1 <- unique(dataframes$TFactor)
   edges1 <- filter(dataframes, Gene %in% nodes1)
   nodes2 <- unique(edges1$TFactor)
@@ -119,21 +128,22 @@ server <- function(input, output) {
   
   loops <- reactive({
     if (!input$removeLoops) {
-      vizualisation <- visNetwork(uniques(), edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely") 
+      vizualisation <-
+        visNetwork(uniques(), edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
       
     } else if (input$removeLoops && input$viewNonRegulation) {
       temp <- edges
       i <- sapply(temp, is.factor)
       temp[i] <- lapply(temp[i], as.character)
       edges2 <- filter(temp, from != to)
-      print("Edges 2 not equal")
       nodes <- unique(edges2$from)
-      print(summary(nodes))
       edges2 <- filter(edges2, to %in% nodes)
-      print("Edges 2 to in nodes")
       nodes <-
         unique(append(unique(edges2$from), unique(edges2$to)))
-      edges <- data.frame(from = edges2$from, to = edges2$to)
+      edges <-
+        data.frame(from = edges2$from,
+                   to = edges2$to,
+                   width = 1)
       nodes1 <-
         data.frame(id = nodes,
                    label = nodes,
@@ -146,7 +156,7 @@ server <- function(input, output) {
           edgeMinimization = FALSE,
           levelSeparation = 70
         )
-
+      
     } else {
       net <-
         graph_from_data_frame(d = edges1,
@@ -170,7 +180,7 @@ server <- function(input, output) {
           hover = T,
           degree = 1
         ),
-        collapse = T, 
+        collapse = T,
         nodesIdSelection = T
       ) %>%
       visInteraction(multiselect = T) %>%
@@ -178,23 +188,39 @@ server <- function(input, output) {
                 Shiny.onInputChange('current_node_id', nodes.nodes);
                 ;}")
 })
+
+  selectedId <- reactive({
+    selected[i] <<- input$current_node_id
+    print(selected)
+    selected
+  })
+  nodesId <- reactive ({
+    selected[i] <<- input$current_node_id
+    if (i == 1) {printouts <<- paste(printouts, input$current_node_id, sep = "")} 
+    else if (is.null(input$current_node_id)) {printouts}
+    else {printouts <<- paste(printouts, input$current_node_id, sep = " -> ")}
+    i <<- i + 1
+    printouts
+  })
   
   #Show the Current Nodes
   output$shiny_return <- renderPrint({
-    input$current_node_id
+    nodesId()
   })
   
   #Unselect Current Selected Nodes
   observe({
     input$gosel
+    i <<- 1
+    printouts <<- ""
+    selected <<- assign("list", NULL, envir = .GlobalEnv)
     visNetworkProxy("network1") %>% visUnselectAll()
   })
-  
+
   newPoints <- reactive({
-    print(summary(dataframes))
     newGraph <- dataframes
     newGraph <-
-      filter(dataframes, TFactor %in% levels(as.factor(input$current_node_id)))
+      filter(dataframes, TFactor %in% levels(as.factor(selectedId())))
     edges <- data.frame(from = newGraph$TFactor, to = newGraph$Gene)
     edges
   })
@@ -205,16 +231,18 @@ server <- function(input, output) {
     nodes2 <- levels(newPoints()[, 1])
     nodes3 <- append(nodes1, nodes2)
     nodes3 <- unique(nodes3)
-    nodes <-data.frame(
-      id = nodes3,
-      label = nodes3,
-      value = degree_value[match(nodes3, names(degree_value))]
-    )
+    nodes <- data.frame(id = nodes3,
+                        label = nodes3,
+                        value = degree_value[match(nodes3, names(degree_value))])
     visNetwork(nodes,
-      newPoints(),
-      width = "100%"
-    )  %>%
+               newPoints(),
+               width = "100%")  %>%
       visEdges(arrows = c("to")) %>%
+      # visHierarchicalLayout(
+      #   direction = "UD",
+      #   edgeMinimization = FALSE,
+      #   levelSeparation = 70
+      # ) %>%
       visIgraphLayout(layout = "layout_nicely") %>%
       visOptions(
         highlightNearest = list(
