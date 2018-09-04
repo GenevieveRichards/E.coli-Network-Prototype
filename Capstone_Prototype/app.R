@@ -98,7 +98,7 @@ server <- function(input, output) {
   edges <-
     data.frame(from = dataframes$TFactor, to = dataframes$Gene)
   graph <- graph.data.frame(edges, directed = T)
-  degree_value <- degree(graph, mode = "out")
+  degree_value <- (degree(graph, mode = "out") * 5)
   nodes1 <- unique(dataframes$TFactor)
   edges1 <- filter(dataframes, Gene %in% nodes1)
   nodes2 <- unique(edges1$TFactor)
@@ -229,11 +229,23 @@ server <- function(input, output) {
   output$network2 <- renderVisNetwork({
     nodes1 <- levels(newPoints()[, 2])
     nodes2 <- levels(newPoints()[, 1])
+    df <- data.frame(id = nodes2, group = "TF")
     nodes3 <- append(nodes1, nodes2)
     nodes3 <- unique(nodes3)
     nodes <- data.frame(id = nodes3,
                         label = nodes3,
-                        value = degree_value[match(nodes3, names(degree_value))])
+                        value = (degree_value[match(nodes3, names(degree_value))] * 5), 
+                        group = NA)
+    
+    for (i in 1:nrow(nodes)) {
+      if (nodes[i, 1] %in% nodes2) {
+        nodes[i, 4] <- "TF"
+        print(nodes[i, 4])
+      } else {
+        nodes[i, 4] <-"Gene"
+      }
+    }
+    
     visNetwork(nodes,
                newPoints(),
                width = "100%")  %>%
@@ -252,7 +264,8 @@ server <- function(input, output) {
         ),
         collapse = F
       ) %>%
-      visInteraction(multiselect = T)
+      visInteraction(multiselect = T) %>%
+      visGroups(groupname = "TF", color = list(background = "orange"), shape = "diamond")
     
   })
 }
