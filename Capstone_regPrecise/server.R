@@ -128,6 +128,43 @@ shinyServer(function(input, output) {
     }
     vizualisation
   })
+  # nodes <- reactive({
+  #   nodes1 <- unique(filenames1()$from)
+  #   print(nodes1)
+  #   edges1 <- filter(filenames1(), to %in% nodes1)
+  #   nodes3 <- unique(edges1$from)
+  #   print(nodes3)
+  #   nodes2 <- data.frame(id = nodes3, name = nodes3)
+  #   print(nodes2)
+  #   nodes2
+  # })
+  # 
+  # edges <- reactive({
+  #   nodes1 <- unique(filenames1()$from)
+  #   edges1 <- filter(filenames1(), to %in% nodes1)
+  #   nodes3 <- unique(edges1$from)
+  #   nodes2 <- data.frame(id = nodes3, name = nodes3)
+  #   edges1 <- filter(filenames1(), to %in% nodes2)
+  #   edges <- data.frame(from = edges1$from, to = edges1$to)
+  #   edges
+  # })
+  
+  # edges <-
+  #   data.frame(from = filenames1()$TFactor, to = filenames1()$Gene)
+  # print(edges)
+  # graph <- graph.data.frame(edges, directed = T)
+  # degree_value <- degree(graph, mode = "out")
+  # nodes1 <- unique(dataframes$TFactor)
+  # edges1 <- filter(dataframes, Gene %in% nodes1)
+  # nodes2 <- unique(edges1$TFactor)
+  # edges1 <- filter(dataframes, Gene %in% nodes2)
+  # edges <-
+  #   data.frame(
+  #     from = edges1$TFactor,
+  #     to = edges1$Gene,
+  #     value = edges1$Regulatory_effect
+  #   )
+  # 
   
   output$network1 <- renderVisNetwork({
     selectGenome()

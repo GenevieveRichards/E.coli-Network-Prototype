@@ -91,7 +91,7 @@ ui <- fluidPage(
                                                "removeLoops",
                                                "Remove Self-Regulation",
                                                right = TRUE,
-                                               value = TRUE,
+                                               value = FALSE,
                                                status = "primary"
                                              )))
                          )
@@ -102,7 +102,9 @@ ui <- fluidPage(
                  align = "center",
                  visNetworkOutput(
                    "network1", width = "100%", height = "700"
-                 )))
+                 )
+                 ), 
+               verbatimTextOutput("error_noEdges"))
   ),
   conditionalPanel(
     condition = "input.home == 1",
@@ -128,82 +130,48 @@ ui <- fluidPage(
 )
 )
 
+selectedIds <- "601"
 # Define server logic required to draw a histogram
 server <- function(input, output) {
   #Genomes
   genomes_df <- read_excel("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/genomes.xlsx")
+  
+  #Selection Menu for Genomes
   output$genomeSelection <- renderUI({
     selectizeInput("selectedGenome", label = "Select your model genome", 
-                   choices = as.list(genomes_df$name), options = list(create = TRUE))
+                   choices = as.list(genomes_df$name), options = list(create = TRUE), selected = "Acetobacter pasteurianus IFO 3283-01")
   }) 
   
-  dataframes <- read.csv("data.csv", header = T, as.is = T)
-  dataframes$Gene <- tolower(dataframes$Gene)
-  dataframes <- read.csv("data.csv", header = T, as.is = T)
-  dataframes$Gene <- tolower(dataframes$Gene)
-  dataframes$TFactor <- tolower(dataframes$TFactor)
-  edges <-
-    data.frame(from = dataframes$TFactor, to = dataframes$Gene)
-  graph <- graph.data.frame(edges, directed = T)
-  degree_value <- degree(graph, mode = "out")
-  nodes1 <- unique(dataframes$TFactor)
-  edges1 <- filter(dataframes, Gene %in% nodes1)
-  nodes2 <- unique(edges1$TFactor)
-  edges1 <- filter(dataframes, Gene %in% nodes2)
-  edges <-
-    data.frame(
-      from = edges1$TFactor,
-      to = edges1$Gene,
-      value = edges1$Regulatory_effect
-    )
-  
-  # filenames1 <- reactive({
-  #   selectedId <- toString(genomes_df[match(input$selectedGenome, genomes_df$name), 1])
-  #   print(selectedId)
-  #   filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
-  #                     paste(paste("nodes_G", selectedId, sep = ""), ".xlsx", sep = ""), sep="")
-  #   print(filename)
-  #   dataframes1 <- read_excel(filename)
-  #   print(dataframes1)
-  #   dataframes <- data.frame(from = dataframes1$From, to = dataframes1$To)
-  #   print(dataframes)
-  # })
-
-  #To determine the degrees
-  # graph <- graph.data.frame(edges, directed = T)
-  # degree_value <- degree(graph, mode = "out")
-
-
-  
-  # nodes <- reactive({
-  #   nodes1 <- unique(filenames1()$from)
-  #   print(nodes1)
-  #   edges1 <- filter(filenames1(), to %in% nodes1)
-  #   nodes3 <- unique(edges1$from)
-  #   print(nodes3)
-  #   nodes2 <- data.frame(id = nodes3, name = nodes3)
-  #   print(nodes2)
-  #   nodes2
-  # })
-  # 
-  # edges <- reactive({
-  #   nodes1 <- unique(filenames1()$from)
-  #   edges1 <- filter(filenames1(), to %in% nodes1)
-  #   nodes3 <- unique(edges1$from)
-  #   nodes2 <- data.frame(id = nodes3, name = nodes3)
-  #   edges1 <- filter(filenames1(), to %in% nodes2)
-  #   edges <- data.frame(from = edges1$from, to = edges1$to)
-  #   edges
-  # })
-  
+#Get the file for the Chosen Genome
+  filenames1 <- reactive({
+    if(is.null(input$selectedGenome)) {
+      selectedIds <<- "601"
+    } else {
+    selectedIds <<- toString(genomes_df[match(input$selectedGenome, genomes_df$name), 1])
+    }
+    filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
+                      paste(paste("nodes_G", selectedIds, sep = ""), ".xlsx", sep = ""), sep="")
+    dataframes1 <- read_excel(filename)
+    dataframes <- data.frame(from = dataframes1$from, to = dataframes1$to)
+    dataframes$to <- tolower(dataframes$to)
+    dataframes$from <- tolower(dataframes$from)
+    #Return the data 
+    dataframes
+  })
   #Function for removing lone TFs
   uniques <- reactive({
+    edges <-
+      data.frame(from = filenames1()$from, to = filenames1()$to)
+    graph <- graph.data.frame(edges, directed = T)
+    degree_value <- degree(graph, mode = "out")
+    nodes1 <- unique(filenames1()$from)
+    edges1 <- filter(filenames1(), to %in% nodes1)
+    nodes2 <- unique(edges1$from)
     if (!input$viewNonRegulation) {
       nodes <-
         data.frame(
           id = nodes1,
           label = nodes1,
-          value = degree_value[match(nodes1, names(degree_value))],
           group = NA
         )
     } else if (input$removeLoops && input$viewNonRegulation) {
@@ -216,7 +184,6 @@ server <- function(input, output) {
       nodes <- data.frame(
         id = nodes1,
         label = nodes1,
-        value = degree_value[match(nodes1, names(degree_value))],
         group = NA
       )
     }
@@ -225,15 +192,27 @@ server <- function(input, output) {
         data.frame(
           id = nodes2,
           label = nodes2,
-          value = degree_value[match(nodes2, names(degree_value))],
           group = NA
         )
     }
     nodes
   })
 
-
   loops <- reactive({
+    #Initial Code
+    edges <- filenames1()
+    # graph <- graph.data.frame(edges, directed = T)
+    # degree_value <- degree(graph, mode = "out")
+    nodes1 <- unique(filenames1()$from)
+    edges1 <- filter(filenames1(), to %in% nodes1)
+    nodes2 <- unique(edges1$from)
+    edges1 <- filter(filenames1(), to %in% nodes2)
+    edges <-
+      data.frame(
+        from = edges1$from,
+        to = edges1$to
+      )
+    #Conditionals for the edges
     if (!input$removeLoops) {
       vizualisation <-
         visNetwork(uniques(), edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
@@ -242,12 +221,16 @@ server <- function(input, output) {
       temp <- edges
       i <- sapply(temp, is.factor)
       temp[i] <- lapply(temp[i], as.character)
+      print(nrow(filter(temp, from != to)) == 0)
+      if(nrow(filter(temp, from != to)) == 0) {
+        vizualisation <- NULL
+      } else {
       edges2 <- filter(temp, from != to)
       edges <-
         data.frame(from = edges2$from,
                    to = edges2$to,
                    width = 1)
-      
+
       vizualisation <-
         visNetwork(uniques(), edges, width = "100%") %>%
         visHierarchicalLayout(
@@ -255,8 +238,7 @@ server <- function(input, output) {
           edgeMinimization = FALSE,
           levelSeparation = 120
         )
-      # visIgraphLayout(layout = "layout_nicely")
-      
+  }
     } else {
       net <-
         graph_from_data_frame(d = edges1,
@@ -268,10 +250,11 @@ server <- function(input, output) {
         visNetwork(data$nodes, data$edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
     }
     vizualisation
-  })
+   })
   
   output$network1 <- renderVisNetwork({
-loops()%>%
+    if (!is.null(loops())) {
+  loops()%>%
       visEdges(arrows = c("to")) %>%
       visOptions(
         highlightNearest = list(
@@ -291,12 +274,19 @@ loops()%>%
         color = list(background = "orange"),
         shape = "diamond"
       )
+  }})
+  errorMessage <- reactive ({
+    if (is.null(loops())) {
+      "No Transcription Factors Regulate Each Other. /n 
+      To View all Transcription Factors set Remove Loops and Remove Self Regulation to False"
+    }
   })
-  
+  output$error_noEdges <- renderPrint({
+  errorMessage()
+  })
   selectedId <- reactive({
     selected[i] <<- input$current_node_id
     print(selected)
-    selected
   })
   
   nodesId <- reactive ({
@@ -318,9 +308,9 @@ loops()%>%
   observe({
     inputgene <- tolower(input$genesearch)
     j = 1
-    for (i in 1:nrow(dataframes)) {
-      if (dataframes[i, 2] == inputgene) {
-        regulatedTF[j] <<- dataframes[i, 1]
+    for (i in 1:nrow(filenames1())) {
+      if (filenames1()[i, 2] == inputgene) {
+        regulatedTF[j] <<- filenames1()[i, 1]
         j <- j + 1
       }
     }
@@ -349,10 +339,10 @@ loops()%>%
   
   newEdges <- reactive({
     selectedss <- levels(as.factor(selectedId()))
-    newGraph <- dataframes
+    newGraph <- filenames1()
     newGraph <-
-      filter(dataframes, TFactor %in% selectedss)
-    edges <- data.frame(from = newGraph$TFactor, to = newGraph$Gene)
+      filter(filenames1(), from %in% selectedss)
+    edges <- data.frame(from = newGraph$from, to = newGraph$to)
     edges
   })
 
@@ -364,11 +354,10 @@ loops()%>%
     nodes <- data.frame(
       id = nodes3,
       label = nodes3,
-      value = degree_value[match(nodes3, names(degree_value))],
       group = NA
     )
     for (i in 1:nrow(nodes)) {
-      if (nodes[i, 1] %in% dataframes[, 1]) {
+      if (nodes[i, 1] %in% filenames1()[, 1]) {
         nodes[i, 4] <- "TF"
       } else {
         nodes[i, 4] <- "Gene"
@@ -380,10 +369,8 @@ loops()%>%
   currentTFF <- reactive({
     nodes <- newNodes()
     nodes <- filter(nodes, nodes$group == "TF")
-    print(nodes)
     currentTFs <- vector("list", 0)
     currentTFs <- nodes[,1]
-    print(unique(currentTFs))
   })
 
 
