@@ -358,9 +358,9 @@ server <- function(input, output) {
     )
     for (i in 1:nrow(nodes)) {
       if (nodes[i, 1] %in% filenames1()[, 1]) {
-        nodes[i, 4] <- "TF"
+        nodes[i, 3] <- "TF"
       } else {
-        nodes[i, 4] <- "Gene"
+        nodes[i, 3] <- "Gene"
       }
     }
     nodes
@@ -375,6 +375,7 @@ server <- function(input, output) {
 
 
   output$network2 <- renderVisNetwork({
+    print(newNodes())
     visNetwork(newNodes(),
                newEdges(),
                width = "100%")  %>%

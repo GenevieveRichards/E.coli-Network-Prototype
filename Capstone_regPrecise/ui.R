@@ -19,8 +19,6 @@ library(tidyverse)
 library(httr)
 library(jsonlite)
 
-library(shiny)
-
 # Define UI for application that draws a histogram
 shinyUI(fluidPage(
   # Application title
@@ -47,7 +45,7 @@ shinyUI(fluidPage(
                       uiOutput("genomeSelection"),
                       actionButton("select", "Submit"))),
   conditionalPanel(
-    condition = "input.home == 0 && input.select == 1",
+    condition = "input.home == 0 && input.select > 0",
     fluidRow(  
       wellPanel(width = 12, 
                 
@@ -87,7 +85,7 @@ shinyUI(fluidPage(
                                         "removeLoops",
                                         "Remove Self-Regulation",
                                         right = TRUE,
-                                        value = TRUE,
+                                        value = FALSE,
                                         status = "primary"
                                       )))
                 )
@@ -98,7 +96,9 @@ shinyUI(fluidPage(
                  align = "center",
                  visNetworkOutput(
                    "network1", width = "100%", height = "700"
-                 )))
+                 )
+               ), 
+               verbatimTextOutput("error_noEdges"))
   ),
   conditionalPanel(
     condition = "input.home == 1",
@@ -114,11 +114,13 @@ shinyUI(fluidPage(
                   width = "100%",
                   size = NULL
                 ),
-                hr(),
+                
                 mainPanel( width = 12, 
                            visNetworkOutput(
                              "network2", width = "100%", height = 800
                            ))
       )
     )
-  ))
+  )
+)
+)
