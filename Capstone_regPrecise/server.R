@@ -18,7 +18,7 @@ library(httr)
 library(jsonlite)
 source("helpers.R")
 
-selectedIds <- "601"
+selectedIds <- "60"
 printouts <- ""
 i <- 1
 selected <- vector("list", 20)
@@ -27,6 +27,7 @@ regulatedTF <- vector("list", 0)
 shinyServer(function(input, output) {
   #Genomes
   genomes_df <- read_excel("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/genomes.xlsx")
+  genomes_df1 <- read_excel("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/genomes1.xlsx")
   
   #Selection Menu for Genomes
   output$genomeSelection <- renderUI({
@@ -34,15 +35,54 @@ shinyServer(function(input, output) {
                    choices = as.list(genomes_df$name), options = list(create = TRUE), selected = "Acetobacter pasteurianus IFO 3283-01")
   }) 
   
+  output$Selectiongenome2 <- renderUI ({ 
+    
+    #Choices Initialisation
+    choices <- vector("list", 10)
+    j <- 1
+  
+    #Loop through all the Genomes
+    for (genomesID in genomes_df$genomeId) {
+      filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
+                        paste(paste("nodes_G", genomesID, sep = ""), ".xlsx", sep = ""), sep="")
+      network <-read_excel(filename) 
+      network <- data.frame(from = network$from, to = network$to)
+      selectedss <- levels(as.factor(selectedId()))
+      choice = FALSE
+        if (all(selectedss %in% unique(tolower(network$from)))) {
+        choice = TRUE
+        }
+      
+    if (choice) {
+      choices[j] <- genomesID
+      j <- j + 1
+    }
+    }
+    choices2 <- vector("list", (j - 1))
+    for (k in 1:(j-1)) {
+      choices2[k] <- genomes_df[match(choices[k], genomes_df$genomeId), 2]
+    }
+    
+    #Select Input
+    selectizeInput("Selectiongenomes2", label = "Select the genome you would like to compare to: ", 
+                   choices = choices2, options = list(create = TRUE), selected = "Acetobacter pasteurianus IFO 3283-01")
+    
+  })
+  
   #Get the file for the Chosen Genome
   filenames1 <- reactive({
     if(is.null(input$selectedGenome)) {
-      selectedIds <<- "601"
+      selectedIds <<- "60"
     } else {
       selectedIds <<- toString(genomes_df[match(input$selectedGenome, genomes_df$name), 1])
     }
+    # if (selectedIds == "334") {
+    #   filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
+    #                     paste(paste("nodes_G", selectedIds, sep = ""), ".xls", sep = ""), sep="")
+    # } else {
     filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
                       paste(paste("nodes_G", selectedIds, sep = ""), ".xlsx", sep = ""), sep="")
+    # }
     dataframes1 <- read_excel(filename)
     dataframes <- data.frame(from = dataframes1$from, to = dataframes1$to)
     dataframes$to <- tolower(dataframes$to)
@@ -58,7 +98,10 @@ shinyServer(function(input, output) {
     degree_value <- degree(graph, mode = "out")
     nodes1 <- unique(filenames1()$from)
     edges1 <- filter(filenames1(), to %in% nodes1)
-    nodes2 <- unique(edges1$from)
+    nodes3 <- unique(edges1$to)
+    nodes4 <- unique(edges1$from)
+    nodes2 <- append(nodes3, nodes4)
+    nodes2 <- unique(nodes2)
     if (!input$viewNonRegulation) {
       nodes <-
         data.frame(
@@ -66,20 +109,7 @@ shinyServer(function(input, output) {
           label = nodes1,
           group = NA
         )
-    } else if (input$removeLoops && input$viewNonRegulation) {
-      temp <- edges
-      i <- sapply(temp, is.factor)
-      temp[i] <- lapply(temp[i], as.character)
-      edges2 <- filter(temp, from != to)
-      nodes1 <-
-        unique(append(unique(edges2$from), unique(edges2$to)))
-      nodes <- data.frame(
-        id = nodes1,
-        label = nodes1,
-        group = NA
-      )
-    }
-    else {
+    } else {
       nodes <-
         data.frame(
           id = nodes2,
@@ -97,8 +127,6 @@ shinyServer(function(input, output) {
     # degree_value <- degree(graph, mode = "out")
     nodes1 <- unique(filenames1()$from)
     edges1 <- filter(filenames1(), to %in% nodes1)
-    nodes2 <- unique(edges1$from)
-    edges1 <- filter(filenames1(), to %in% nodes2)
     edges <-
       data.frame(
         from = edges1$from,
@@ -113,33 +141,27 @@ shinyServer(function(input, output) {
       temp <- edges
       i <- sapply(temp, is.factor)
       temp[i] <- lapply(temp[i], as.character)
-      print(nrow(filter(temp, from != to)) == 0)
-      if(nrow(filter(temp, from != to)) == 0) {
-        vizualisation <- NULL
-      } else {
-        edges2 <- filter(temp, from != to)
-        edges <-
-          data.frame(from = edges2$from,
-                     to = edges2$to,
-                     width = 1)
-        
-        vizualisation <-
-          visNetwork(uniques(), edges, width = "100%") %>%
-          visHierarchicalLayout(
-            direction = "LR",
-            edgeMinimization = FALSE,
-            levelSeparation = 120
-          )
-      }
-    } else {
-      net <-
-        graph_from_data_frame(d = edges1,
-                              vertices = uniques(),
-                              directed = T)
-      net <- simplify(net, remove.loops = T)
-      data <- toVisNetworkData(net)
+      edges2 <- filter(temp, from != to)
+      edges <-
+        data.frame(from = edges2$from,
+                   to = edges2$to,
+                   width = 1)
+      nodes3 <- unique(append(unique(edges2$from), unique(edges2$to)))
+      nodes <- data.frame(id = nodes3, name = nodes3)
       vizualisation <-
-        visNetwork(data$nodes, data$edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
+        visNetwork(nodes, edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
+    } else {
+      temp <- edges
+      i <- sapply(temp, is.factor)
+      temp[i] <- lapply(temp[i], as.character)
+      edges2 <- filter(temp, from != to)
+      edges <-
+        data.frame(from = edges2$from,
+                   to = edges2$to,
+                   width = 1)
+      
+      vizualisation <-
+        visNetwork(uniques(), edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
     }
     vizualisation
   })
@@ -167,15 +189,6 @@ shinyServer(function(input, output) {
           shape = "diamond"
         )
   }})
-  errorMessage <- reactive ({
-    if (is.null(loops())) {
-      "No Transcription Factors Regulate Each Other. /n 
-      To View all Transcription Factors set Remove Loops and Remove Self Regulation to False"
-    }
-    })
-  output$error_noEdges <- renderPrint({
-    errorMessage()
-  })
   selectedId <- reactive({
     selected[i] <<- input$current_node_id
     print(selected)
@@ -220,6 +233,13 @@ shinyServer(function(input, output) {
     nodesId()
   })
   
+  output$shiny_return2 <- renderPrint({
+    nodesId()
+  })
+  
+  output$Name_Genome <- renderPrint({
+    input$selectedGenome
+  })
   #Unselect Current Selected Nodes
   observe({
     input$gosel
@@ -265,9 +285,7 @@ shinyServer(function(input, output) {
     currentTFs <- nodes[,1]
   })
   
-  
-  output$network2 <- renderVisNetwork({
-    print(newNodes())
+  baseNetwork <- reactive ({
     visNetwork(newNodes(),
                newEdges(),
                width = "100%")  %>%
@@ -289,7 +307,75 @@ shinyServer(function(input, output) {
       )
     
   })
-}
-)
-# # Run the application
-# shinyApp(ui = ui, server = server)
+  output$network2 <- renderVisNetwork({
+    baseNetwork()
+  })
+  
+  output$network2a <- renderVisNetwork({
+    baseNetwork()
+  })
+  
+  edges2 <- reactive ({ 
+    selectedSS <- levels(as.factor(selectedId()))
+    name <- input$Selectiongenomes2
+    ID <- toString(genomes_df[match(name, genomes_df$name), 1])
+    edges <- edgesBase(selectedSS,ID)
+    edges
+  })
+  
+  nodesId2 <- reactive ({ 
+    name <- input$Selectiongenomes2
+    ID <- toString(genomes_df[match(name, genomes_df$name), 1])
+    
+    filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
+                      paste(paste("nodes_G", ID, sep = ""), ".xlsx", sep = ""), sep="")
+    #Read Data
+    dataframes1 <- read_excel(filename)
+    dataframes <- data.frame(from = dataframes1$from, to = dataframes1$to)
+    dataframes$to <- tolower(dataframes$to)
+    dataframes$from <- tolower(dataframes$from)
+    nodes1 <- levels(edges2()$from)
+    nodes2 <- levels(edges2()$to)
+    nodes3 <- append(nodes2, nodes1)
+    nodes3 <- unique(nodes3)
+    
+    nodes <- data.frame(
+      id = nodes3,
+      label = nodes3,
+      group = NA
+    )
+    for (i in 1:nrow(nodes)) {
+      if (nodes[i, 1] %in% dataframes[, 1]) {
+        nodes[i, 3] <- "TF"
+      } else {
+        nodes[i, 3] <- "Gene"
+      }
+    }
+    nodes
+    })
+  
+ 
+  
+  output$network2b <- renderVisNetwork({
+    visNetwork(nodesId2(),
+               edges2(),
+               width = "100%")  %>%
+      visEdges(arrows = c("to")) %>%
+      visIgraphLayout(layout = "layout_nicely")%>%
+      visOptions(
+        highlightNearest = list(
+          enabled = T,
+          algorithm = "hierarchical",
+          hover = T
+        ),
+        collapse = T
+      ) %>%
+      visInteraction(multiselect = T) %>%
+      visGroups(
+        groupname = "Gene",
+        color = list(background = "orange"),
+        shape = "diamond"
+      )
+    
+  })
+})

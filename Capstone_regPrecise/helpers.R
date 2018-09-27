@@ -69,4 +69,57 @@ genome_Nodes <- function(genomeId) {
   return(nodes3)
   
 }
+
+edgesBase <- function(selectedSS, genomeId) {
+  
+  filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
+                    paste(paste("nodes_G", genomeId, sep = ""), ".xlsx", sep = ""), sep="")
+  #Read Data
+  dataframes1 <- read_excel(filename)
+  dataframes <- data.frame(from = dataframes1$from, to = dataframes1$to)
+  dataframes$to <- tolower(dataframes$to)
+  dataframes$from <- tolower(dataframes$from)
+  
+  #Filter the dataframe for the TF in selectedSS
+  newGraph <- filter(dataframes, from %in% selectedSS)
+  edges <- data.frame(from = newGraph$from, to = newGraph$to)
+  
+  return(edges)
+}
+
+nodesBase <- function(edges, genomeId) {
+  
+  filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
+                    paste(paste("nodes_G", genomeId, sep = ""), ".xlsx", sep = ""), sep="")
+  #Read Data
+  dataframes1 <- read_excel(filename)
+  dataframes <- data.frame(from = dataframes1$from, to = dataframes1$to)
+  dataframes$to <- tolower(dataframes$to)
+  dataframes$from <- tolower(dataframes$from)
+
+  
+  nodes1 <- unique(edges$from)
+  print("NODES1")
+  print(nodes1)
+  nodes2 <- unique(edges$to)
+  nodes3 <- append(nodes1, nodes2)
+  nodes3 <- unique(nodes3)
+  
+  nodes <- data.frame(
+    id = nodes3,
+    label = nodes3,
+    group = NA
+  )
+  for (i in 1:nrow(nodes)) {
+    if (nodes[i, 1] %in% dataframes[, 1]) {
+      nodes[i, 3] <- "TF"
+    } else {
+      nodes[i, 3] <- "Gene"
+    }
+  }
+  return(nodes)
+  
+}
+
+
   
