@@ -52,9 +52,7 @@ shinyUI(fluidPage(
     fluidRow(
       wellPanel(
         width = 12,
-        
-        splitLayout(h5("Genome Name:"),
-                    h5("Genome Id: ")),
+        verbatimTextOutput("genomesName1"),
         h5(
           "Select the Transcription Factors or Regulatory pathways you are interested in:  "
         ),
@@ -101,7 +99,7 @@ shinyUI(fluidPage(
       width = 12,
       tags$div(
         align = "center",
-        visNetworkOutput("network1", width = "100%", height = "700")
+        visNetworkOutput("network1", width = "100%", height = "500")
       ),
       verbatimTextOutput("error_noEdges")
     )
@@ -117,7 +115,7 @@ shinyUI(fluidPage(
           inputId = "gemoneSelect",
           label = "How many Genomes do you want to compare to: ",
           choices = c(1, 2, 3, 4),
-          selected = 2,
+          selected = 1,
           multiple = FALSE,
           selectize = TRUE,
           width = "100%",
@@ -128,7 +126,7 @@ shinyUI(fluidPage(
                        hr(),
                        mainPanel(
                          width = 12,
-                         visNetworkOutput("network2", width = "100%", height = 800)
+                         visNetworkOutput("network2", width = "100%", height = 500)
                        )),
       conditionalPanel(condition = "input['gemoneSelect'] == 2",
                        mainPanel(width = 12,
@@ -136,8 +134,8 @@ shinyUI(fluidPage(
                                    column(
                                      width = 6,
                                      wellPanel(verbatimTextOutput("Name_Genome"),
-                                               br(),
-                                               br()),
+                                               br()
+                                               ),
                                      visNetworkOutput("network2a", width = "100%", height = 400)
                                    ),
                                    column(

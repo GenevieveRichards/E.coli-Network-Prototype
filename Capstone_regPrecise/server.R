@@ -107,6 +107,7 @@ shinyServer(function(input, output) {
         data.frame(
           id = nodes1,
           label = nodes1,
+          
           group = NA
         )
     } else {
@@ -230,15 +231,28 @@ shinyServer(function(input, output) {
   
   #Show the Current Nodes
   output$shiny_return <- renderPrint({
-    nodesId()
+    cat(nodesId())
   })
   
   output$shiny_return2 <- renderPrint({
-    nodesId()
+    cat(nodesId())
   })
   
+  #Show Genomes Name for TF Network
+  
+  
+  genomesName <- reactive ({
+    ID <- toString(genomes_df[match(input$selectedGenome, genomes_df$name), 1])
+    cat(paste(paste("Genomes Name:", input$selectedGenome, sep = " "), paste("Genome ID: ", ID ,sep = "   "), sep = "\n" ))
+  })
+  
+  output$genomesName1 <- renderPrint({
+    genomesName()
+  })
+  
+  #Genome Name for Model Genome
   output$Name_Genome <- renderPrint({
-    input$selectedGenome
+    cat(input$selectedGenome)
   })
   #Unselect Current Selected Nodes
   observe({
@@ -290,7 +304,7 @@ shinyServer(function(input, output) {
                newEdges(),
                width = "100%")  %>%
       visEdges(arrows = c("to")) %>%
-      visIgraphLayout(layout = "layout_nicely")%>%
+      visIgraphLayout(layout = "layout_with_fr")%>%
       visOptions(
         highlightNearest = list(
           enabled = T,
@@ -353,15 +367,13 @@ shinyServer(function(input, output) {
     }
     nodes
     })
-  
- 
-  
+
   output$network2b <- renderVisNetwork({
     visNetwork(nodesId2(),
                edges2(),
                width = "100%")  %>%
       visEdges(arrows = c("to")) %>%
-      visIgraphLayout(layout = "layout_nicely")%>%
+      visIgraphLayout(layout = "layout_with_fr")%>%
       visOptions(
         highlightNearest = list(
           enabled = T,
