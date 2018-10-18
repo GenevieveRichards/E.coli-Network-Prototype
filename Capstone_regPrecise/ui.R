@@ -52,6 +52,9 @@ shinyUI(fluidPage(
     fluidRow(
       wellPanel(
         width = 12,
+        p("This view shows the transcription regulatory network without the genes.A node is a transcription factor (TF). 
+           The edges show regulation that occurs between the two nodes with the direction of the arrow 
+           identifying which TF regulates the other TF."),
         verbatimTextOutput("genomesName1"),
         h5(
           "Select the Transcription Factors or Regulatory pathways you are interested in:  "
@@ -63,7 +66,7 @@ shinyUI(fluidPage(
                    actionButton("home", "Submit"))
         ),
         tags$div(align = "center",
-                 actionButton("Expand", "See More")),
+                 actionButton("Expand", "▼ Customise ▼")),
         conditionalPanel(condition = "input.Expand == 1",
                          hr(),
                          splitLayout(
@@ -90,6 +93,23 @@ shinyUI(fluidPage(
                                value = FALSE,
                                status = "primary"
                              )
+                           )), 
+                           br(),
+                         splitLayout(                           
+                           searchInput(
+                           inputId = "TFsearch",
+                           label = "Find a TF you are interested in: ",
+                           placeholder = "Search Transcription Factor  name",
+                           btnSearch = icon("search"),
+                           btnReset = icon("remove"),
+                           width = "80%"
+                         ),
+                           materialSwitch(
+                             "removeEdges",
+                             "Show Self-Regulated Edges Only",
+                             right = TRUE,
+                             value = FALSE,
+                             status = "primary"
                            )
                          ))
       )

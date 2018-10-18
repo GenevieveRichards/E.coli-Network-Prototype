@@ -107,7 +107,6 @@ shinyServer(function(input, output) {
         data.frame(
           id = nodes1,
           label = nodes1,
-          
           group = NA
         )
     } else {
@@ -148,7 +147,7 @@ shinyServer(function(input, output) {
                    to = edges2$to,
                    width = 1)
       nodes3 <- unique(append(unique(edges2$from), unique(edges2$to)))
-      nodes <- data.frame(id = nodes3, name = nodes3)
+      nodes <- data.frame(id = nodes3, name = nodes3, group = NA)
       vizualisation <-
         visNetwork(nodes, edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
     } else {
@@ -187,7 +186,8 @@ shinyServer(function(input, output) {
         visGroups(
           groupname = "regulatedTF",
           color = list(background = "orange"),
-          shape = "diamond"
+          shape = "circle",
+          size = 5
         )
   }})
   selectedId <- reactive({
@@ -213,6 +213,7 @@ shinyServer(function(input, output) {
   #Update TFs that regulate searched gene
   observe({
     inputgene <- tolower(input$genesearch)
+    print(inputgene)
     j = 1
     for (i in 1:nrow(filenames1())) {
       if (filenames1()[i, 2] == inputgene) {
@@ -223,7 +224,7 @@ shinyServer(function(input, output) {
     nodes <- uniques()
     for (i in 1:nrow(nodes)) {
       if (nodes[i, 1] %in% regulatedTF) {
-        nodes[i, 4] <- "regulatedTF"
+        nodes[i, 3] <- "regulatedTF"
       }
     }
     visNetworkProxy("network1") %>% visUpdateNodes(nodes)
@@ -304,6 +305,11 @@ shinyServer(function(input, output) {
                newEdges(),
                width = "100%")  %>%
       visEdges(arrows = c("to")) %>%
+      # visHierarchicalLayout(
+      #   direction = "UD",
+      #   edgeMinimization = FALSE,
+      #   levelSeparation = 100
+      # ) %>%
       visIgraphLayout(layout = "layout_with_fr")%>%
       visOptions(
         highlightNearest = list(
@@ -373,6 +379,11 @@ shinyServer(function(input, output) {
                edges2(),
                width = "100%")  %>%
       visEdges(arrows = c("to")) %>%
+      # visHierarchicalLayout(
+      #   direction = "UD",
+      #   edgeMinimization = FALSE,
+      #   levelSeparation = 100
+      # ) %>%
       visIgraphLayout(layout = "layout_with_fr")%>%
       visOptions(
         highlightNearest = list(
