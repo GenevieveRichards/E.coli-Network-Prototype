@@ -23,7 +23,7 @@ library(jsonlite)
 shinyUI(fluidPage(
   # Application title
   h3("QCloud TRNDiff Regulon Browser", align = "center"),
-  hr(),
+  br(),
   conditionalPanel(
     condition = "input.select == 0",
     tags$div(
@@ -31,8 +31,8 @@ shinyUI(fluidPage(
       img(
         src = 'Nav1.png',
         align = "center",
-        width = "80%",
-        height = 80
+        width = "50%",
+        height = 90
       )
     ),
     br(),
@@ -50,7 +50,7 @@ shinyUI(fluidPage(
   conditionalPanel(
     condition = "input.home == 0 && input.select > 0",
     fluidRow(
-      wellPanel(
+      wellPanel(style = "background: #b4bdc1",
         width = 12,
         p("This view shows the transcription regulatory network without the genes.A node is a transcription factor (TF). 
            The edges show regulation that occurs between the two nodes with the direction of the arrow 
@@ -59,17 +59,29 @@ shinyUI(fluidPage(
         h5(
           "Select the Transcription Factors or Regulatory pathways you are interested in:  "
         ),
-        verbatimTextOutput("shiny_return"),
+        fluidRow(
+        column(9,
+        tags$div( align = "center",
+        verbatimTextOutput("shiny_return", placeholder=TRUE))),
+        column(3,
         splitLayout(
           actionButton("gosel", "Unselect nodes!"),
-          tags$div(align = "right",
                    actionButton("home", "Submit"))
-        ),
+        )),
         tags$div(align = "center",
                  actionButton("Expand", "▼ Customise ▼")),
         conditionalPanel(condition = "input.Expand == 1",
                          hr(),
-                         splitLayout(
+                         fluidRow(
+                           column(4,
+                                  searchInput(
+                                    inputId = "TFsearch",
+                                    label = "Find a TF you are interested in: ",
+                                    placeholder = "Search Transcription Factor  name",
+                                    btnSearch = icon("search"),
+                                    btnReset = icon("remove"),
+                                    width = "80%"
+                                  ),
                            searchInput(
                              inputId = "genesearch",
                              label = "Search for a Gene you are interested in to highlight all the TFs that regulate it:",
@@ -77,8 +89,9 @@ shinyUI(fluidPage(
                              btnSearch = icon("search"),
                              btnReset = icon("remove"),
                              width = "80%"
-                           ),
-                           splitLayout(
+                           )
+                           ), 
+                           column(4,
                              materialSwitch(
                                inputId = "viewNonRegulation",
                                label = "Remove Unconnected Transcription Factors",
@@ -92,26 +105,16 @@ shinyUI(fluidPage(
                                right = TRUE,
                                value = FALSE,
                                status = "primary"
-                             )
-                           )), 
-                           br(),
-                         splitLayout(                           
-                           searchInput(
-                           inputId = "TFsearch",
-                           label = "Find a TF you are interested in: ",
-                           placeholder = "Search Transcription Factor  name",
-                           btnSearch = icon("search"),
-                           btnReset = icon("remove"),
-                           width = "80%"
-                         ),
+                             ), 
                            materialSwitch(
                              "removeEdges",
                              "Show Self-Regulated Edges Only",
                              right = TRUE,
                              value = FALSE,
                              status = "primary"
-                           )
-                         ))
+                         )), 
+                         column(4, 
+                                p("Here we will add filters to highlight aspects of the network to find greater insights based on from workshop"))))
       )
     ),
     

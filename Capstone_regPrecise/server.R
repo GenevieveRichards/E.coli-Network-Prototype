@@ -107,14 +107,16 @@ shinyServer(function(input, output) {
         data.frame(
           id = nodes1,
           label = nodes1,
-          group = NA
+          group = NA, 
+          value = degree_value[match(nodes1, names(degree_value))]
         )
     } else {
       nodes <-
         data.frame(
           id = nodes2,
           label = nodes2,
-          group = NA
+          group = NA,
+          value = degree_value[match(nodes2, names(degree_value))]
         )
     }
     nodes
@@ -123,8 +125,8 @@ shinyServer(function(input, output) {
   loops <- reactive({
     #Initial Code
     edges <- filenames1()
-    # graph <- graph.data.frame(edges, directed = T)
-    # degree_value <- degree(graph, mode = "out")
+    graph <- graph.data.frame(edges, directed = T)
+    degree_value <- degree(graph, mode = "out")
     nodes1 <- unique(filenames1()$from)
     edges1 <- filter(filenames1(), to %in% nodes1)
     edges <-
@@ -147,7 +149,7 @@ shinyServer(function(input, output) {
                    to = edges2$to,
                    width = 1)
       nodes3 <- unique(append(unique(edges2$from), unique(edges2$to)))
-      nodes <- data.frame(id = nodes3, name = nodes3, group = NA)
+      nodes <- data.frame(id = nodes3, name = nodes3, group = NA, value = degree_value[match(nodes3, names(degree_value))])
       vizualisation <-
         visNetwork(nodes, edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
     } else {
@@ -186,8 +188,7 @@ shinyServer(function(input, output) {
         visGroups(
           groupname = "regulatedTF",
           color = list(background = "orange"),
-          shape = "circle",
-          size = 5
+          shape = "circle"
         )
   }})
   selectedId <- reactive({
