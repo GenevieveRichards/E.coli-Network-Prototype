@@ -52,7 +52,7 @@ shinyUI(fluidPage(
     fluidRow(
       wellPanel(style = "background: #b4bdc1",
         width = 12,
-        p("This view shows the transcription regulatory network without the genes.A node is a transcription factor (TF). 
+        p("This view shows the transcription regulatory network without the genes. A node is a transcription factor (TF). 
            The edges show regulation that occurs between the two nodes with the direction of the arrow 
            identifying which TF regulates the other TF."),
         verbatimTextOutput("genomesName1"),
@@ -114,6 +114,18 @@ shinyUI(fluidPage(
                              status = "primary"
                          )), 
                          column(4, 
+                                selectInput(
+                                  inputId = "layoutSelect",
+                                  label = "Choose your preferred layout option: ",
+                                  choices = c("Layout Nicely", "Hierarchical", "Layout with Fruchterman-Reingold", 
+                                              "Layout with Kamada Kawai", "Layout with LGL", "Layout with Davidson Harel",
+                                              "Layout with Sugiyama"),
+                                  selected = "Layout Nicely",
+                                  multiple = FALSE,
+                                  selectize = TRUE,
+                                  width = "100%",
+                                  size = NULL
+                                ),
                                 p("Here we will add filters to highlight aspects of the network to find greater insights based on from workshop"))))
       )
     ),
@@ -130,14 +142,14 @@ shinyUI(fluidPage(
   conditionalPanel(
     condition = "input.home == 1",
     fluidRow(
-      wellPanel(
+      wellPanel( style = "background: #b4bdc1",
         width = 12,
         h5("The pathway being analysed is: "),
         verbatimTextOutput("shiny_return2"),
         selectInput(
           inputId = "gemoneSelect",
           label = "How many Genomes do you want to compare to: ",
-          choices = c(1, 2, 3, 4),
+          choices = c(1, 2),
           selected = 1,
           multiple = FALSE,
           selectize = TRUE,
@@ -156,14 +168,43 @@ shinyUI(fluidPage(
                                  fluidRow (
                                    column(
                                      width = 6,
-                                     wellPanel(verbatimTextOutput("Name_Genome"),
-                                               br()
+                                     wellPanel(style = "background: #b4bdc1", 
+                                               h5("Model Genome: "),
+                                               verbatimTextOutput("Name_Genome"),
+                                               materialSwitch(
+                                                 "colorSimDIFFTarget",
+                                                 "Color edges present in the Selected Gene ",
+                                                 right = TRUE,
+                                                 value = FALSE,
+                                                 status = "primary"
+                                               ),
+                                               materialSwitch(
+                                                 "removeSimilarEdges",
+                                                 "Remove Edges present in Selected Gene",
+                                                 right = TRUE,
+                                                 value = FALSE,
+                                                 status = "primary"
+                                               )
                                                ),
                                      visNetworkOutput("network2a", width = "100%", height = 400)
                                    ),
                                    column(
                                      width = 6,
-                                     wellPanel(uiOutput("Selectiongenome2")),
+                                     wellPanel(style = "background: #b4bdc1", uiOutput("Selectiongenome2"),
+                                               materialSwitch(
+                                                 "colorSimDIFF",
+                                                 "Color edges present in the Target Gene ",
+                                                 right = TRUE,
+                                                 value = FALSE,
+                                                 status = "primary"
+                                               ), 
+                                               materialSwitch(
+                                                 "removeSimilarEdges2",
+                                                 "Remove Edges present in Target Gene",
+                                                 right = TRUE,
+                                                 value = FALSE,
+                                                 status = "primary"
+                                               )),
                                      visNetworkOutput("network2b", width = "100%", height = 400)
                                    )
                                  )))

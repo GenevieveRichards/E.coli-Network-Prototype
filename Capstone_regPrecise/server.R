@@ -134,12 +134,15 @@ shinyServer(function(input, output) {
         from = edges1$from,
         to = edges1$to
       )
+    
+    print(input$removeEdges)
     #Conditionals for the edges
     if (!input$removeLoops) {
       vizualisation <-
-        visNetwork(uniques(), edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
+        visNetwork(uniques(), edges, width = "100%")
       
-    } else if (input$removeLoops && input$viewNonRegulation) {
+     } 
+    else if (input$removeLoops && input$viewNonRegulation && !input$removeEdges) {
       temp <- edges
       i <- sapply(temp, is.factor)
       temp[i] <- lapply(temp[i], as.character)
@@ -151,8 +154,23 @@ shinyServer(function(input, output) {
       nodes3 <- unique(append(unique(edges2$from), unique(edges2$to)))
       nodes <- data.frame(id = nodes3, name = nodes3, group = NA, value = degree_value[match(nodes3, names(degree_value))])
       vizualisation <-
-        visNetwork(nodes, edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
-    } else {
+        visNetwork(nodes, edges, width = "100%")
+    }
+    else if (input$removeEdges) {
+      temp <- edges
+      i <- sapply(temp, is.factor)
+      temp[i] <- lapply(temp[i], as.character)
+      edges2 <- filter(temp, from == to)
+      edges <-
+        data.frame(from = edges2$from,
+                   to = edges2$to,
+                   width = 1)
+      nodes3 <- unique(append(unique(edges2$from), unique(edges2$to)))
+      nodes <- data.frame(id = nodes3, name = nodes3, group = NA, value = degree_value[match(nodes3, names(degree_value))])
+      vizualisation <-
+        visNetwork(nodes, edges, width = "100%")
+    }
+    else {
       temp <- edges
       i <- sapply(temp, is.factor)
       temp[i] <- lapply(temp[i], as.character)
@@ -163,34 +181,58 @@ shinyServer(function(input, output) {
                    width = 1)
       
       vizualisation <-
-        visNetwork(uniques(), edges, width = "100%") %>% visIgraphLayout(layout = "layout_nicely")
+        visNetwork(uniques(), edges, width = "100%") 
     }
     vizualisation
   })
   
   output$network1 <- renderVisNetwork({
-    if (!is.null(loops())) {
-      loops()%>%
-        visEdges(arrows = c("to")) %>%
-        visOptions(
-          highlightNearest = list(
-            enabled = T,
-            algorithm = "hierarchical",
-            hover = T,
-            degree = 1
-          ),
-          collapse = T
-        ) %>%
-        visInteraction(multiselect = T) %>%
-        visEvents(select = "function(nodes) {
-                  Shiny.onInputChange('current_node_id', nodes.nodes);
-                  ;}") %>%
-        visGroups(
-          groupname = "regulatedTF",
-          color = list(background = "orange"),
-          shape = "circle"
-        )
-  }})
+    layouts()
+  })
+  
+  layouts <- reactive ({
+    networks <- loops() %>%
+      visEdges(arrows = c("to")) %>%
+      visOptions(
+        highlightNearest = list(
+          enabled = T,
+          algorithm = "hierarchical",
+          hover = T,
+          degree = 1
+        ),
+        collapse = T
+      ) %>%
+      visInteraction(multiselect = T) %>%
+      visEvents(select = "function(nodes) {
+                Shiny.onInputChange('current_node_id', nodes.nodes);
+                ;}") %>%
+      visGroups(
+        groupname = "regulatedTF",
+        color = list(background = "orange"),
+        shape = "circle", 
+        value = 7
+      )
+    if (input$layoutSelect == "Layout Nicely") {
+        networks <- networks %>% visIgraphLayout(layout = "layout_nicely")
+      } else if (input$layoutSelect == "Layout with Fruchterman-Reingold") {
+        networks %>% visIgraphLayout(layout = "layout_with_fr")
+      } else if (input$layoutSelect == "Layout with Kamada Kawai") {
+        networks %>% visIgraphLayout(layout = "layout_with_kk")
+      } else if (input$layoutSelect == "Layout with LGL") {
+        networks %>% visIgraphLayout(layout = "layout_with_lgl")
+      } else if (input$layoutSelect == "Layout with Davidson Harel") {
+        networks %>% visIgraphLayout(layout = "layout_with_dh")
+      } else if (input$layoutSelect == "Layout with Sugiyama") {
+        networks %>% visIgraphLayout(layout = "layout_with_sugiyama")
+      } else {
+       networks <- networks %>% visHierarchicalLayout(
+        direction = "UD",
+        edgeMinimization = FALSE,
+        levelSeparation = 70
+      ) 
+      }
+    networks
+  })
   selectedId <- reactive({
     selected[i] <<- input$current_node_id
     print(selected)
@@ -222,7 +264,30 @@ shinyServer(function(input, output) {
         j <- j + 1
       }
     }
+    if (input$removeLoops && input$viewNonRegulation) {
+      edges <- filenames1()
+      graph <- graph.data.frame(edges, directed = T)
+      degree_value <- degree(graph, mode = "out")
+      nodes1 <- unique(filenames1()$from)
+      edges1 <- filter(filenames1(), to %in% nodes1)
+      edges <-
+        data.frame(
+          from = edges1$from,
+          to = edges1$to
+        )
+      temp <- edges
+      i <- sapply(temp, is.factor)
+      temp[i] <- lapply(temp[i], as.character)
+      edges2 <- filter(temp, from != to)
+      edges <-
+        data.frame(from = edges2$from,
+                   to = edges2$to,
+                   width = 1)
+      nodes3 <- unique(append(unique(edges2$from), unique(edges2$to)))
+      nodes <- data.frame(id = nodes3, name = nodes3, group = NA, value = degree_value[match(nodes3, names(degree_value))])
+    } else {
     nodes <- uniques()
+    }
     for (i in 1:nrow(nodes)) {
       if (nodes[i, 1] %in% regulatedTF) {
         nodes[i, 3] <- "regulatedTF"
@@ -230,6 +295,43 @@ shinyServer(function(input, output) {
     }
     visNetworkProxy("network1") %>% visUpdateNodes(nodes)
   })
+  
+  #TFsearch
+  observe({
+    TF <- tolower(input$TFsearch)
+    if (input$removeLoops && input$viewNonRegulation) {
+      edges <- filenames1()
+      graph <- graph.data.frame(edges, directed = T)
+      degree_value <- degree(graph, mode = "out")
+      nodes1 <- unique(filenames1()$from)
+      edges1 <- filter(filenames1(), to %in% nodes1)
+      edges <-
+        data.frame(
+          from = edges1$from,
+          to = edges1$to
+        )
+      temp <- edges
+      i <- sapply(temp, is.factor)
+      temp[i] <- lapply(temp[i], as.character)
+      edges2 <- filter(temp, from != to)
+      edges <-
+        data.frame(from = edges2$from,
+                   to = edges2$to,
+                   width = 1)
+      nodes3 <- unique(append(unique(edges2$from), unique(edges2$to)))
+      nodes <- data.frame(id = nodes3, name = nodes3, group = NA, value = degree_value[match(nodes3, names(degree_value))])
+    } else {
+      nodes <- uniques()
+    }
+    
+    for (i in 1:nrow(nodes)) {
+      if (nodes[i, 1] == TF) {
+        nodes[i, 3] <- "regulatedTF"
+      }
+    }
+    visNetworkProxy("network1") %>% visUpdateNodes(nodes)
+  })
+  
   
   #Show the Current Nodes
   output$shiny_return <- renderPrint({
@@ -274,9 +376,25 @@ shinyServer(function(input, output) {
     edges
   })
   
+  newEdges2 <- reactive ({
+    edgesT <- data.frame(from = newEdges()$from, to = newEdges()$to, color = "blue")
+    if (input$colorSimDIFFTarget) {
+      edgesT$color <- apply(edgesT, 1, function(x) 
+        ifelse(any(x[1] == edges2()$from & x[2] == edges2()$to), 'grey','blue'))
+    } 
+    if (input$removeSimilarEdges) {
+      edgesT$color <- apply(edgesT, 1, function(x) 
+      ifelse(any(x[1] == edges2()$from & x[2] == edges2()$to), 'grey','blue'))
+      edgesT <- filter(edgesT, edgesT$color == 'blue')
+    }
+    print(nrow(edgesT))
+    edgesT
+    })
+  
   newNodes <- reactive({
-    nodes1 <- levels(newEdges()[, 2])
-    nodes2 <- levels(newEdges()[, 1])
+    print(nrow(newEdges2()))
+    nodes1 <- levels(newEdges2()[, 2])
+    nodes2 <- levels(newEdges2()[, 1])
     nodes3 <- append(nodes1, nodes2)
     nodes3 <- unique(nodes3)
     nodes <- data.frame(
@@ -284,6 +402,7 @@ shinyServer(function(input, output) {
       label = nodes3,
       group = NA
     )
+    print(nodes)
     for (i in 1:nrow(nodes)) {
       if (nodes[i, 1] %in% filenames1()[, 1]) {
         nodes[i, 3] <- "TF"
@@ -303,15 +422,10 @@ shinyServer(function(input, output) {
   
   baseNetwork <- reactive ({
     visNetwork(newNodes(),
-               newEdges(),
+               newEdges2(),
                width = "100%")  %>%
       visEdges(arrows = c("to")) %>%
-      # visHierarchicalLayout(
-      #   direction = "UD",
-      #   edgeMinimization = FALSE,
-      #   levelSeparation = 100
-      # ) %>%
-      visIgraphLayout(layout = "layout_with_fr")%>%
+      visIgraphLayout(layout = "layout_with_fr", randomSeed = 3)%>%
       visOptions(
         highlightNearest = list(
           enabled = T,
@@ -325,8 +439,7 @@ shinyServer(function(input, output) {
         groupname = "Gene",
         color = list(background = "orange"),
         shape = "diamond"
-      )
-    
+      ) %>% visLegend()
   })
   output$network2 <- renderVisNetwork({
     baseNetwork()
@@ -341,7 +454,11 @@ shinyServer(function(input, output) {
     name <- input$Selectiongenomes2
     ID <- toString(genomes_df[match(name, genomes_df$name), 1])
     edges <- edgesBase(selectedSS,ID)
-    edges
+    edgesnew <- data.frame(from = edges$from, to = edges$to, color = "blue", width = 1)
+    if (input$colorSimDIFF) {
+    edgesnew$color <- apply(edgesnew, 1, function(x) 
+      ifelse(any(x[1] == newEdges()$from & x[2] == newEdges()$to), 'grey','blue'))}
+    edgesnew
   })
   
   nodesId2 <- reactive ({ 
@@ -380,12 +497,7 @@ shinyServer(function(input, output) {
                edges2(),
                width = "100%")  %>%
       visEdges(arrows = c("to")) %>%
-      # visHierarchicalLayout(
-      #   direction = "UD",
-      #   edgeMinimization = FALSE,
-      #   levelSeparation = 100
-      # ) %>%
-      visIgraphLayout(layout = "layout_with_fr")%>%
+      visIgraphLayout(layout = "layout_with_fr", randomSeed = 3)%>%
       visOptions(
         highlightNearest = list(
           enabled = T,

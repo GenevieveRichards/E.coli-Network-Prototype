@@ -231,6 +231,8 @@ server <- function(input, output) {
     newGraph <-
       filter(dataframes, TFactor %in% levels(as.factor(selectedId())))
     edges <- data.frame(from = newGraph$TFactor, to = newGraph$Gene)
+    apply(df1, 1, function(x) 
+      ifelse(any(x[1] == df2$pnr & x[2] == df2$drug), 'yes','no'))
     edges
   })
   
