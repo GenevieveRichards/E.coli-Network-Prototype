@@ -4,7 +4,6 @@ library("igraph")
 library(shiny)
 library(shinythemes)
 library(readr)
-library(ggplot2)
 library(dplyr)
 library(DT)
 library(tools)
@@ -215,15 +214,15 @@ shinyServer(function(input, output) {
     if (input$layoutSelect == "Layout Nicely") {
         networks <- networks %>% visIgraphLayout(layout = "layout_nicely")
       } else if (input$layoutSelect == "Layout with Fruchterman-Reingold") {
-        networks %>% visIgraphLayout(layout = "layout_with_fr")
+        networks %>% visIgraphLayout(layout = "layout_with_fr", randomSeed = 3)
       } else if (input$layoutSelect == "Layout with Kamada Kawai") {
-        networks %>% visIgraphLayout(layout = "layout_with_kk")
+        networks %>% visIgraphLayout(layout = "layout_with_kk", randomSeed = 3)
       } else if (input$layoutSelect == "Layout with LGL") {
-        networks %>% visIgraphLayout(layout = "layout_with_lgl")
+        networks %>% visIgraphLayout(layout = "layout_with_lgl", randomSeed = 3)
       } else if (input$layoutSelect == "Layout with Davidson Harel") {
-        networks %>% visIgraphLayout(layout = "layout_with_dh")
+        networks %>% visIgraphLayout(layout = "layout_with_dh", randomSeed = 3)
       } else if (input$layoutSelect == "Layout with Sugiyama") {
-        networks %>% visIgraphLayout(layout = "layout_with_sugiyama")
+        networks %>% visIgraphLayout(layout = "layout_with_sugiyama", randomSeed = 3)
       } else {
        networks <- networks %>% visHierarchicalLayout(
         direction = "UD",
@@ -387,12 +386,18 @@ shinyServer(function(input, output) {
       ifelse(any(x[1] == edges2()$from & x[2] == edges2()$to), 'grey','blue'))
       edgesT <- filter(edgesT, edgesT$color == 'blue')
     }
-    print(nrow(edgesT))
+      nodes1 <- levels(edgesT[, 2])
+      nodes2 <- levels(edgesT[, 1])
+      nodes3 <- append(nodes1, nodes2)
+      nodes3 <- unique(nodes3)
+      edges2 <- filter(edgesT, to %in% nodes3)
+      print("EDGES")
+      print(nodes3)
     edgesT
     })
   
   newNodes <- reactive({
-    print(nrow(newEdges2()))
+    print(newEdges2())
     nodes1 <- levels(newEdges2()[, 2])
     nodes2 <- levels(newEdges2()[, 1])
     nodes3 <- append(nodes1, nodes2)
@@ -402,7 +407,6 @@ shinyServer(function(input, output) {
       label = nodes3,
       group = NA
     )
-    print(nodes)
     for (i in 1:nrow(nodes)) {
       if (nodes[i, 1] %in% filenames1()[, 1]) {
         nodes[i, 3] <- "TF"
@@ -458,18 +462,12 @@ shinyServer(function(input, output) {
     if (input$colorSimDIFF) {
     edgesnew$color <- apply(edgesnew, 1, function(x) 
       ifelse(any(x[1] == newEdges()$from & x[2] == newEdges()$to), 'grey','blue'))}
+    
     edgesnew
   })
   
   nodesId2 <- reactive ({ 
-    name <- input$Selectiongenomes2
-    ID <- toString(genomes_df[match(name, genomes_df$name), 1])
-    
-    filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
-                      paste(paste("nodes_G", ID, sep = ""), ".xlsx", sep = ""), sep="")
-    #Read Data
-    dataframes1 <- read_excel(filename)
-    dataframes <- data.frame(from = dataframes1$from, to = dataframes1$to)
+    dataframes <- data.frame(from = edges2()$from, to = edges2()$to)
     dataframes$to <- tolower(dataframes$to)
     dataframes$from <- tolower(dataframes$from)
     nodes1 <- levels(edges2()$from)
