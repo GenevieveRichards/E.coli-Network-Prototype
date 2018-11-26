@@ -75,13 +75,9 @@ shinyServer(function(input, output) {
     } else {
       selectedIds <<- toString(genomes_df[match(input$selectedGenome, genomes_df$name), 1])
     }
-    # if (selectedIds == "334") {
-    #   filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
-    #                     paste(paste("nodes_G", selectedIds, sep = ""), ".xls", sep = ""), sep="")
-    # } else {
+
     filename <- paste("~/Documents/GitHub/E.coli-Network-Prototype/Capstone_regPrecise/",
                       paste(paste("nodes_G", selectedIds, sep = ""), ".xlsx", sep = ""), sep="")
-    # }
     dataframes1 <- read_excel(filename)
     dataframes <- data.frame(from = dataframes1$from, to = dataframes1$to)
     dataframes$to <- tolower(dataframes$to)
@@ -89,6 +85,7 @@ shinyServer(function(input, output) {
     #Return the data 
     dataframes
   })
+  
   #Function for removing lone TFs
   uniques <- reactive({
     edges <-

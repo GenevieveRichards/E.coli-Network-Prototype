@@ -89,7 +89,7 @@ shinyUI(fluidPage(
                              width = "80%"
                            )
                            ), 
-                           column(4,
+                           column(6,
                              materialSwitch(
                                inputId = "viewNonRegulation",
                                label = "Remove Unconnected Transcription Factors",
@@ -103,14 +103,15 @@ shinyUI(fluidPage(
                                right = TRUE,
                                value = FALSE,
                                status = "primary"
-                             ), 
+                             ),
                            materialSwitch(
                              "removeEdges",
                              "Show Self-Regulated Edges Only",
                              right = TRUE,
                              value = FALSE,
                              status = "primary"
-                         )), 
+                         )
+                         ), 
                          column(4, 
                                 selectInput(
                                   inputId = "layoutSelect",
